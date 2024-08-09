@@ -2,7 +2,8 @@ import streamlit as st
 import requests
 
 # Define the backend API URL
-BACKEND_API_URL = "http://127.0.0.1:3001/convert"  # Use the correct port for your backend
+CONVERT_API_URL = "http://127.0.0.1:3001/convert"  # Use the correct port for your backend
+COMPILE_API_URL = "http://127.0.0.1:3001/compile"
 
 # Streamlit UI
 st.set_page_config(page_title="COBOL Code Converter", layout="wide")
@@ -19,11 +20,9 @@ with col1:
 
 with col2:
     st.header("Converted Code")
-    # Language selector and convert button in the same column
     target_language = st.selectbox("Select target language:", ["Python", ".NET"])
     convert_button = st.button("Convert")
 
-    # Display result or a placeholder
     if convert_button:
         if cobol_code:
             # Prepare the request payload
@@ -33,16 +32,32 @@ with col2:
             }
             try:
                 # Send request to the backend
-                response = requests.post(BACKEND_API_URL, json=payload)
+                response = requests.post(CONVERT_API_URL, json=payload)
                 response.raise_for_status()
 
                 # Get the converted code from the response
                 response_data = response.json()
-                result = response_data.get("converted_code", "")
+                converted_code = response_data.get("converted_code", "")
                 
                 # Display the converted code
                 st.subheader("Converted Code")
-                st.code(result, language='text')
+                st.code(converted_code, language='text')
+
+                # Send the converted code to compile and get the output
+                compile_payload = {
+                    "code": converted_code,
+                    "language": target_language
+                }
+                compile_response = requests.post(COMPILE_API_URL, json=compile_payload)
+                compile_response.raise_for_status()
+
+                # Get the compilation output from the response
+                compile_data = compile_response.json()
+                output = compile_data.get("output", "")
+
+                # Display the compilation output
+                st.subheader("Compilation Output")
+                st.code(output, language='text')
 
             except requests.exceptions.RequestException as e:
                 st.error(f"An error occurred: {e}")
